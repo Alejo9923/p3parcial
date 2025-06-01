@@ -7,19 +7,23 @@
       :defaultColDef="defaultColDef"
       :theme="'legacy'" 
       class="h-full"
-      domLayout="autoHeight"
+      :domLayout="shouldPaginate ? 'normal' : 'autoHeight'"
       :rowHeight="50"
+      :pagination="shouldPaginate"
+      :paginationPageSize="20"
+      :paginationPageSizeSelector="[10, 20, 50, 100]"
+      :style="shouldPaginate ? 'height: 600px;' : ''"
     />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { AgGridVue } from 'ag-grid-vue3';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
-defineProps({
+const props = defineProps({
   pokemonData: {
     type: Array,
     required: true
@@ -28,6 +32,11 @@ defineProps({
     type: Boolean,
     required: true
   }
+});
+
+// Computed para determinar si debe paginar
+const shouldPaginate = computed(() => {
+  return props.pokemonData && props.pokemonData.length > 20;
 });
 
 // Función para renderizar el sprite como HTML directo
@@ -168,5 +177,37 @@ const defaultColDef = {
 
 .ag-theme-alpine.ag-theme-dark .ag-menu-option:hover {
   background-color: var(--ag-row-hover-color);
+}
+
+/* Estilos para la paginación en tema oscuro */
+.ag-theme-alpine.ag-theme-dark .ag-paging-panel {
+  background-color: var(--ag-header-background-color);
+  color: var(--ag-foreground-color);
+  border-top: 1px solid var(--ag-border-color);
+}
+
+.ag-theme-alpine.ag-theme-dark .ag-paging-button {
+  color: var(--ag-foreground-color);
+  background-color: transparent;
+  border: 1px solid var(--ag-border-color);
+}
+
+.ag-theme-alpine.ag-theme-dark .ag-paging-button:hover:not(.ag-disabled) {
+  background-color: var(--ag-row-hover-color);
+}
+
+.ag-theme-alpine.ag-theme-dark .ag-paging-button.ag-disabled {
+  color: var(--ag-secondary-foreground-color);
+  background-color: transparent;
+}
+
+.ag-theme-alpine.ag-theme-dark .ag-select .ag-picker-field-wrapper {
+  background-color: var(--ag-background-color);
+  border: 1px solid var(--ag-border-color);
+  color: var(--ag-foreground-color);
+}
+
+.ag-theme-alpine.ag-theme-dark .ag-select .ag-picker-field-display {
+  color: var(--ag-foreground-color);
 }
 </style>
