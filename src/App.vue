@@ -15,6 +15,17 @@
       <p :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'" class="mt-2">Cargando Pokémon...</p>
     </div>
     
+    <!-- Botón de exportar PDF -->
+    <div v-if="!loading && rowData.length > 0" class="mb-6 text-center">
+      <button
+        @click="exportToPDF"
+        :class="isDarkMode ? 'bg-green-600 hover:bg-green-700 focus:ring-green-400' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'"
+        class="px-6 py-3 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-300 font-medium shadow-lg"
+      >
+        📄 Exportar a PDF
+      </button>
+    </div>
+    
     <!-- Tabla de Pokémon Favoritos -->
     <PokemonFavoritesTable 
       v-if="!loading"
@@ -126,6 +137,219 @@ const addPokemonToTable = (pokemon) => {
   }
 };
 
+// Función para exportar a PDF
+const exportToPDF = async () => {
+  try {
+    // Método 1: Intentar con import dinámico usando una URL diferente
+    let jsPDF;
+    let autoTable;
+    
+    try {
+      // Importar jsPDF usando ES modules desde un CDN que soporte ES modules
+      const jsPDFModule = await import('https://cdn.skypack.dev/jspdf@2.5.1');
+      jsPDF = jsPDFModule.jsPDF;
+      
+      // Importar autoTable
+      const autoTableModule = await import('https://cdn.skypack.dev/jspdf-autotable@3.5.31');
+      autoTable = autoTableModule.default;
+      
+    } catch (importError) {
+      console.log('Falló import ES6, intentando con UMD...');
+      
+      // Método 2: Fallback con UMD
+      await loadJsPDFUMD();
+      
+      if (window.jsPDF) {
+        jsPDF = window.jsPDF;
+      } else {
+        throw new Error('No se pudo cargar jsPDF');
+      }
+    }
+    
+    // Crear documento PDF
+    const doc = new jsPDF();
+    
+    // Configuración del documento
+    const pageWidth = doc.internal.pageSize.width;
+    let yPosition = 20;
+    
+    // Título principal (sin emojis)
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.text('Reporte de Pokemon', pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 20;
+    
+    // Fecha
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    const currentDate = new Date().toLocaleDateString('es-ES');
+    doc.text(`Generado el: ${currentDate}`, pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 20;
+    
+    // Tabla de favoritos (si existe)
+    if (favoritesPokemon.value.length > 0) {
+      doc.setFontSize(16);
+      doc.setFont(undefined, 'bold');
+      // Reemplazar emoji por texto
+      doc.text(`Pokemon Favoritos (${favoritesPokemon.value.length})`, 14, yPosition);
+      yPosition += 10;
+      
+      const favoritesTableData = favoritesPokemon.value.map(pokemon => [
+        pokemon.id,
+        pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1),
+        pokemon.types.map(type => type.charAt(0).toUpperCase() + type.slice(1)).join(', '),
+        pokemon.abilities.map(ability => ability.charAt(0).toUpperCase() + ability.slice(1)).join(', ')
+      ]);
+      
+      // Usar autoTable si está disponible, sino tabla manual
+      if (doc.autoTable || (window.jsPDF && window.jsPDF.API && window.jsPDF.API.autoTable)) {
+        doc.autoTable({
+          startY: yPosition,
+          head: [['ID', 'Nombre', 'Tipo(s)', 'Habilidades']],
+          body: favoritesTableData,
+          theme: 'striped',
+          headStyles: { 
+            fillColor: [255, 193, 7],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold'
+          },
+          alternateRowStyles: { fillColor: [255, 248, 220] },
+          margin: { left: 14, right: 14 },
+          styles: { fontSize: 9, cellPadding: 3 }
+        });
+        yPosition = doc.lastAutoTable.finalY + 20;
+      } else {
+        // Tabla manual sin autoTable
+        yPosition = createManualTable(doc, favoritesTableData, ['ID', 'Nombre', 'Tipo(s)', 'Habilidades'], yPosition);
+      }
+    }
+    
+    // Verificar si necesitamos una nueva página
+    if (yPosition > 250) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    
+    // Tabla principal de todos los Pokémon
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    // Reemplazar emoji por texto
+    doc.text(`Todos los Pokemon (${rowData.value.length})`, 14, yPosition);
+    yPosition += 10;
+    
+    const allPokemonTableData = rowData.value.map(pokemon => [
+      pokemon.id,
+      pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1),
+      pokemon.types.map(type => type.charAt(0).toUpperCase() + type.slice(1)).join(', '),
+      pokemon.abilities.map(ability => ability.charAt(0).toUpperCase() + ability.slice(1)).join(', '),
+      // Reemplazar emoji por texto
+      favoritesPokemon.value.some(fav => fav.id === pokemon.id) ? 'Si' : 'No'
+    ]);
+    
+    if (doc.autoTable || (window.jsPDF && window.jsPDF.API && window.jsPDF.API.autoTable)) {
+      doc.autoTable({
+        startY: yPosition,
+        head: [['ID', 'Nombre', 'Tipo(s)', 'Habilidades', 'Favorito']],
+        body: allPokemonTableData,
+        theme: 'striped',
+        headStyles: { 
+          fillColor: [59, 130, 246],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { left: 14, right: 14 },
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: {
+          4: { halign: 'center' }
+        }
+      });
+    } else {
+      // Tabla manual sin autoTable
+      createManualTable(doc, allPokemonTableData, ['ID', 'Nombre', 'Tipo(s)', 'Habilidades', 'Favorito'], yPosition);
+    }
+    
+    // Agregar pie de página
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'normal');
+      doc.text(
+        `Pagina ${i} de ${totalPages} - Datos obtenidos de PokeAPI`,
+        pageWidth / 2,
+        doc.internal.pageSize.height - 10,
+        { align: 'center' }
+      );
+    }
+    
+    // Guardar el PDF
+    const fileName = `pokemon-reporte-${currentDate.replace(/\//g, '-')}.pdf`;
+    doc.save(fileName);
+    
+  } catch (error) {
+    console.error('Error al exportar PDF:', error);
+    alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
+  }
+};
+
+// Función para cargar jsPDF con UMD (fallback)
+const loadJsPDFUMD = () => {
+  return new Promise((resolve, reject) => {
+    if (window.jsPDF) {
+      resolve();
+      return;
+    }
+    
+    const script1 = document.createElement('script');
+    script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    script1.onload = () => {
+      const script2 = document.createElement('script');
+      script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
+      script2.onload = () => {
+        setTimeout(resolve, 100); // Dar tiempo para que se registren
+      };
+      script2.onerror = reject;
+      document.head.appendChild(script2);
+    };
+    script1.onerror = reject;
+    document.head.appendChild(script1);
+  });
+};
+
+// Función para crear tabla manual (sin autoTable)
+const createManualTable = (doc, data, headers, startY) => {
+  let yPos = startY;
+  const cellHeight = 8;
+  const cellWidth = 35;
+  
+  // Headers
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'bold');
+  headers.forEach((header, index) => {
+    doc.text(header, 14 + (index * cellWidth), yPos);
+  });
+  yPos += cellHeight;
+  
+  // Data rows
+  doc.setFont(undefined, 'normal');
+  doc.setFontSize(8);
+  data.forEach((row) => {
+    row.forEach((cell, index) => {
+      const cellText = String(cell).length > 15 ? String(cell).substring(0, 15) + '...' : String(cell);
+      doc.text(cellText, 14 + (index * cellWidth), yPos);
+    });
+    yPos += cellHeight;
+    
+    // Nueva página si es necesario
+    if (yPos > 280) {
+      doc.addPage();
+      yPos = 20;
+    }
+  });
+  
+  return yPos + 10;
+};
 // Función para cargar múltiples Pokémon
 async function loadPokemon() {
   loading.value = true;
