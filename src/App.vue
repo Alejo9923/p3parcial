@@ -15,11 +15,29 @@
       <p :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'" class="mt-2">Cargando Pokémon...</p>
     </div>
     
-    <!-- Tabla de Pokémon -->
+    <!-- Tabla de Pokémon Favoritos -->
+    <PokemonFavoritesTable 
+      v-if="!loading"
+      :favoritesPokemon="favoritesPokemon"
+      :isDarkMode="isDarkMode"
+      @removeFavorite="removePokemonFromFavorites"
+    />
+    
+    <!-- Título de la tabla principal -->
+    <div v-if="!loading && favoritesPokemon.length > 0" class="mb-4">
+      <h2 :class="isDarkMode ? 'text-white' : 'text-gray-900'" class="text-2xl font-bold text-center">
+        📋 Todos los Pokémon
+      </h2>
+    </div>
+    
+    <!-- Tabla de Pokémon Principal -->
     <PokemonTable 
       v-if="!loading"
       :pokemonData="rowData"
       :isDarkMode="isDarkMode"
+      :favorites="favoritesPokemon"
+      @addFavorite="addPokemonToFavorites"
+      @removeFavorite="removePokemonFromFavorites"
     />
     
     <!-- Controls -->
@@ -49,11 +67,15 @@
       </div>
     </div>
     
-    <div class="mt-8 text-center text-sm">
+    <!-- Estadísticas -->
+    <div class="mt-8 text-center text-sm space-y-2">
       <p :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'" class="transition-colors duration-300">
         Datos obtenidos de PokéAPI • Total mostrados: {{ rowData.length }} Pokémon
       </p>
-      <p v-if="rowData.length !== pokemonCount" :class="isDarkMode ? 'text-blue-400' : 'text-blue-600'" class="text-xs mt-1">
+      <p v-if="favoritesPokemon.length > 0" :class="isDarkMode ? 'text-yellow-400' : 'text-yellow-600'" class="font-medium">
+        ⭐ {{ favoritesPokemon.length }} Pokémon en favoritos
+      </p>
+      <p v-if="rowData.length !== pokemonCount" :class="isDarkMode ? 'text-blue-400' : 'text-blue-600'" class="text-xs">
         ({{ pokemonCount }} cargados inicialmente + {{ rowData.length - pokemonCount }} agregados por búsqueda)
       </p>
     </div>
@@ -65,9 +87,11 @@ import { ref, onMounted } from 'vue';
 import AppHeader from './assets/components/AppHeader.vue';
 import PokemonSearch from './assets/components/PokemonSearch.vue';
 import PokemonTable from './assets/components/PokemonTable.vue';
+import PokemonFavoritesTable from './assets/components/PokemonFavoritesTable.vue';
 
 // Estados reactivos
 const rowData = ref([]);
+const favoritesPokemon = ref([]);
 const loading = ref(false);
 const pokemonCount = ref(10);
 const isDarkMode = ref(false);
@@ -75,6 +99,19 @@ const isDarkMode = ref(false);
 // Función para alternar tema oscuro
 const toggleDarkMode = () => {
   isDarkMode.value = !isDarkMode.value;
+};
+
+// Función para agregar Pokémon a favoritos
+const addPokemonToFavorites = (pokemon) => {
+  const exists = favoritesPokemon.value.some(fav => fav.id === pokemon.id);
+  if (!exists) {
+    favoritesPokemon.value.push(pokemon);
+  }
+};
+
+// Función para quitar Pokémon de favoritos
+const removePokemonFromFavorites = (pokemonId) => {
+  favoritesPokemon.value = favoritesPokemon.value.filter(fav => fav.id !== pokemonId);
 };
 
 // Función para agregar Pokémon a la tabla
@@ -93,6 +130,7 @@ const addPokemonToTable = (pokemon) => {
 async function loadPokemon() {
   loading.value = true;
   rowData.value = [];
+  // Mantener los favoritos al recargar
   
   try {
     // Obtener la lista básica de pokémons
