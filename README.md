@@ -28,7 +28,7 @@ Esta Pokédex consume datos desde [PokéAPI](https://pokeapi.co/) y presenta la 
 
 ```bash
 git clone https://github.com/Alejo9923/p3parcial.git
-cd pokedex-vue-aggrid
+cd p3parcial
 ```
 ### 2. Instala dependencias
 ```bash
