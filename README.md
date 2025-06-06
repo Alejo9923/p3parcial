@@ -27,7 +27,7 @@ Esta Pokédex consume datos desde [PokéAPI](https://pokeapi.co/) y presenta la 
 ### 1. Clona el repositorio
 
 ```bash
-git clone https://github.com/tu-usuario/pokedex-vue-aggrid.git
+git clone https://github.com/Alejo9923/p3parcial.git
 cd pokedex-vue-aggrid
 ```
 ### 2. Instala dependencias
