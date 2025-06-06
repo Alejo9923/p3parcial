@@ -86,7 +86,7 @@ npm run build
 ---
 
 ## 🧠 Descripción de Componentes
-App.vue
+### App.vue
 - 📦 Componente raíz que orquesta toda la lógica
 
 - 🔁 Carga datos desde PokéAPI
@@ -94,24 +94,24 @@ App.vue
 - 🌓 Controla el estado global: tema, favoritos, carga
 
 - 📄 Exporta la información a PDF (jsPDF + autoTable)
-AppHeader.vue
+### AppHeader.vue
 - 🎛 Contiene el título y botón de cambio de tema oscuro
 
 - 🌓 Emite evento para alternar isDarkMode
-PokemonSearch.vue
+### PokemonSearch.vue
 - 🔍 Input de búsqueda + selector de tipo y habilidad
 
 - 🔁 Lógica debounced para evitar múltiples peticiones
 
 - 🔗 Emite addPokemon al encontrar un resultado válido
-PokemonTable.vue
+### PokemonTable.vue
 - 📋 Muestra los Pokémon en una tabla AG Grid
 
 - ⭐ Permite agregar/quitar favoritos desde la tabla
 
 - ⚙️ Soporta paginación automática según cantidad
 
-PokemonFavoritesTable.vue
+### PokemonFavoritesTable.vue
 - ⭐ Muestra solo los Pokémon marcados como favoritos
 
 - ❌ Permite remover desde esta sección
